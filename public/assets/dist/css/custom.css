@@ -1,0 +1,12 @@
+.dataTables_filter{
+    text-align: right;
+}
+.dataTables_paginate ul{
+    float: right;
+}
+#availabilityTable{
+    display: none;
+}
+#book_for{
+    display: none;
+}
