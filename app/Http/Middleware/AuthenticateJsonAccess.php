@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class IsAdmin
+class AuthenticateJsonAccess
 {
     /**
      * Handle an incoming request.
@@ -16,16 +16,11 @@ class IsAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-
-        if (Auth::user() && Auth::user()->is_admin == 1 || $request->expectsJson()) {
+        if (Auth::check() && $request->expectsJson()) {
             return $next($request);
         }
-        return back();
-        // return response('Unauthorized.', 401);
-        //abort(401);
 
-        // return redirect()->back()->with('unauthorised', 'You are page');
-
+        return response()->json(['message' => 'Unauthorized.'], 401);
 
     }
 }

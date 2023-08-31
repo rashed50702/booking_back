@@ -37,12 +37,23 @@ class MeetingRoomBookingController extends Controller
                 ->editColumn('end_time', function ($booking) {
                     return date('d-m-Y h:i a', strtotime($booking->end_time));
                 })
+                ->editColumn('status', function ($booking) {
+                    if($booking->status === "Approved"){
+                        return '<span class="badge bg-success">Approved</span>';
+                    }
+                    if($booking->status === "Pending"){
+                        return '<span class="badge bg-warning">Pending</span>';
+                    }
+                    if($booking->status === "Canceled") {
+                        return '<span class="badge bg-danger">Canceled</span>';
+                    }
+                })
                 ->addColumn('action', function ($row) {
                     $btn = '<a href="javascript:void(0)" data-toggle="tooltip"  data-id="' . $row->id . '" data-original-title="Edit" class="edit btn btn-xs edit-item"><i class="fas fa-edit"></i></a>';
                     $btn = $btn . ' <a href="javascript:void(0)" data-toggle="tooltip"  data-id="' . $row->id . '" data-original-title="Delete" class="btn btn-xs text-danger delete-item"><i class="fas fa-trash"></i></a>';
                     return $btn;
                 })
-                ->rawColumns(['action'])
+                ->rawColumns(['status','action'])
                 ->make(true);
         }
         return view('admin.booking.index');
@@ -120,12 +131,12 @@ class MeetingRoomBookingController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(CreateMeetingRoomBookingRequest $request, string $id)
+    public function update(Request $request, string $id)
     {
-        $validatedData = $request->validated();
-
-        MeetingRoomBooking::where('id', $id)->update($validatedData);
-        return response()->json(['message' => 'Booking updated successfully']);
+        MeetingRoomBooking::where('id', $id)->update([
+            'status' => $request->status,
+        ]);
+        return response()->json(['message' => 'Booking status updated successfully']); 
     }
 
     /**

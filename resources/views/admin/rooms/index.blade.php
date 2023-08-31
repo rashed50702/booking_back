@@ -1,8 +1,4 @@
 @extends('admin.layouts.master')
-@section('page_css_plugins')
-<link rel="stylesheet" href="{{ asset('assets') }}/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css">
-@stop
-
 @section('content')
 <!-- Content Header (Page header) -->
 <div class="content-header">
@@ -97,129 +93,126 @@
 <!-- / . modal end -->
 @stop
 
-@section('page_plugins')
-<!-- DataTables  & Plugins -->
-<script src="{{ asset('assets') }}/plugins/datatables/jquery.dataTables.min.js"></script>
-<script src="{{ asset('assets') }}/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
-<script src="{{ asset('assets') }}/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
-<script src="{{ asset('assets') }}/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
-<script src="{{ asset('assets') }}/plugins/sweetalert2/sweetalert2.min.js"></script>
+@section('footer-scripts')
 <script src="{{ asset('js/ajaxUtils.js') }}"></script>
-
 <script>
-    $(function() {
+    $(document).ready(function() {
+        $(function() {
 
-        $.ajaxSetup({
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            }
-        });
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            });
 
-        var table = $('.data-table').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: "{{ route('rooms.index') }}",
-            columns: [{
-                    data: 'DT_RowIndex',
-                    name: 'DT_RowIndex'
-                },
-                {
-                    data: 'name',
-                    name: 'name'
-                },
-                {
-                    data: 'action',
-                    name: 'action',
-                    orderable: false,
-                    searchable: false
-                },
-            ]
-        });
-
-        $('#create-modal').click(function() {
-            $('#savedata').val("Save");
-            $('#id').val('');
-            $('#modal-form').trigger("reset");
-            $('#modelHeading').html("Create New Room");
-            $('#ajaxModelexa').modal('show');
-        });
-
-        // get single item to edit
-        $('body').on('click', '.edit-item', function() {
-            var id = $(this).data('id');
-            $.get("{{ route('rooms.index') }}" + '/' + id + '/edit', function(data) {
-                $('#modelHeading').html("Edit Room");
-                $('#savedata').val("Update");
-                $('#savedata').html("Update");
-                $('#ajaxModelexa').modal('show');
-                $('#id').val(data.id);
-                $('#name').val(data.name);
-            })
-        });
-
-        // saving and updating
-        $('#savedata').click(function(e) {
-            e.preventDefault();
-            let saveButton = $(this); // Store the button element
-            saveButton.html('Sending..'); // Set the button text to 'Sending..'
-
-            if ($(this).val() == "Save") {
-                // Insert new record
-                handleAjaxRequest(
-                    "{{ route('rooms.store') }}",
-                    'POST',
-                    $('#modal-form').serialize(),
-                    'Room created successfully',
-                    function() {
-                        $('#modal-form').trigger("reset");
-                        $('#ajaxModelexa').modal('hide');
-                        table.draw();
-                        saveButton.html('Submit'); // Reset the button text after success
+            var table = $('.data-table').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: "{{ route('rooms.index') }}",
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex'
                     },
-                    function() {
-                        saveButton.html('Submit'); // Reset the button text on error
-                    }
-                );
+                    {
+                        data: 'name',
+                        name: 'name'
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false,
+                        searchable: false
+                    },
+                ]
+            });
 
-            } else if ($(this).val() == "Update") {
-                // Update existing record
-                let id = $('#id').val();
+            $('#create-modal').click(function() {
+                $('#savedata').val("Save");
+                $('#id').val('');
+                $('#modal-form').trigger("reset");
+                $('#modelHeading').html("Create New Room");
+                $('#ajaxModelexa').modal('show');
+            });
+
+            // get single item to edit
+            $('body').on('click', '.edit-item', function() {
+                var id = $(this).data('id');
+                $.get("{{ route('rooms.index') }}" + '/' + id + '/edit', function(data) {
+                    $('#modelHeading').html("Edit Room");
+                    $('#savedata').val("Update");
+                    $('#savedata').html("Update");
+                    $('#ajaxModelexa').modal('show');
+                    $('#id').val(data.id);
+                    $('#name').val(data.name);
+                })
+            });
+
+            // saving and updating
+            $('#savedata').click(function(e) {
+                e.preventDefault();
+                let saveButton = $(this); // Store the button element
+                saveButton.html('Sending..'); // Set the button text to 'Sending..'
+
+                if ($(this).val() == "Save") {
+                    // Insert new record
+                    handleAjaxRequest(
+                        "{{ route('rooms.store') }}",
+                        'POST',
+                        $('#modal-form').serialize(),
+                        'Room created successfully',
+                        function() {
+                            $('#modal-form').trigger("reset");
+                            $('#ajaxModelexa').modal('hide');
+                            table.draw();
+                            saveButton.html('Submit'); // Reset the button text after success
+                        },
+                        function() {
+                            saveButton.html('Submit'); // Reset the button text on error
+                        }
+                    );
+
+                } else if ($(this).val() == "Update") {
+                    // Update existing record
+                    let id = $('#id').val();
+                    handleAjaxRequest(
+                        "{{ route('rooms.index') }}" + '/' + id,
+                        'PUT',
+                        $('#modal-form').serialize(),
+                        'Room updated successfully',
+                        function() {
+                            $('#modal-form').trigger("reset");
+                            $('#ajaxModelexa').modal('hide');
+                            table.draw();
+                            saveButton.html('Update'); // Reset the button text after success
+
+                        },
+                        function() {
+                            saveButton.html('Update'); // Reset the button text on error
+                        }
+                    );
+                }
+            });
+
+            // deleting item
+            $('body').on('click', '.delete-item', function() {
+                var id = $(this).data("id");
+                if (!confirm("Are You sure want to delete this! You will lost related data.")) {
+                    return false;
+                }
                 handleAjaxRequest(
                     "{{ route('rooms.index') }}" + '/' + id,
-                    'PUT',
+                    'DELETE',
                     $('#modal-form').serialize(),
-                    'Room updated successfully',
+                    'Room deleted successfully',
+                    // success function
                     function() {
-                        $('#modal-form').trigger("reset");
-                        $('#ajaxModelexa').modal('hide');
                         table.draw();
-                        saveButton.html('Update'); // Reset the button text after success
-
-                    },
-                    function() {
-                        saveButton.html('Update'); // Reset the button text on error
                     }
                 );
-            }
-        });
 
-        // deleting item
-        $('body').on('click', '.delete-item', function() {
-            var id = $(this).data("id");
-            confirm("Are You sure want to delete this!");
-            handleAjaxRequest(
-                "{{ route('rooms.index') }}" + '/' + id,
-                'DELETE',
-                $('#modal-form').serialize(),
-                'Room deleted successfully',
-                // success function
-                function() {
-                    table.draw();
-                }
-            );
+            });
 
         });
-
     });
 </script>
 @stop

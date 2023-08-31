@@ -20,6 +20,7 @@ class MeetingRoomBooking extends Model
     protected $fillable = [
         'start_time',
         'end_time',
+        'status',
         'user_id',
         'room_id',
     ];

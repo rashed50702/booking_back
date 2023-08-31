@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->dateTime('start_time', $precision = 0);
             $table->dateTime('end_time', $precision = 0);
+            $table->string('status')->nullable()->default("Pending");
+
             $table->unsignedBigInteger('user_id'); // Foreign key column
             $table->foreign('user_id')->references('id')->on('users'); // Define foreign key
 

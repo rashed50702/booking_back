@@ -60,4 +60,10 @@ class BookingController extends Controller
         $booking = MeetingRoomBooking::create($validatedData);
         return response()->json(['message' => 'Booking created successfully', 'data' => $booking]);
     }
+
+
+    public function my_bookings($id)
+    {
+        return MeetingRoomBooking::with('room')->where('user_id', $id)->get();
+    }
 }

@@ -24,6 +24,7 @@ class RoomController extends Controller
      */
     public function index(Request $request)
     {
+        
         if ($request->ajax()) {
             $booking = Room::latest()->get();
             return DataTables::of($booking)
@@ -94,7 +95,9 @@ class RoomController extends Controller
      */
     public function destroy(Room $room)
     {
-        Room::where('id', $room->id)->delete();
+        $room = Room::find($room->id);
+        $room->bookings()->delete();
+        $room->delete();
         return response()->json(['message' => 'Room deleted successfully']);
     }
 }
