@@ -26,12 +26,6 @@
                         <p>Home</p>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="{{route('rooms.index')}}" class="nav-link {{ (request()->is('rooms')) ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-door-closed"></i>
-                        <p>Rooms</p>
-                    </a>
-                </li>
                 <li class="nav-item {{ (request()->is('bookings*')) ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link {{ (request()->is('bookings*')) ? 'active' : '' }}">
                         <i class="nav-icon fas fa-door-open"></i>
@@ -55,7 +49,12 @@
                         </li>
                     </ul>
                 </li>
-
+                <li class="nav-item">
+                    <a href="{{route('rooms.index')}}" class="nav-link {{ (request()->is('rooms')) ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-door-closed"></i>
+                        <p>Rooms</p>
+                    </a>
+                </li>
                 <li class="nav-item">
                     <a href="{{route('logout')}}" class="nav-link" onclick="event.preventDefault();
                                                      document.getElementById('logout-form').submit();">

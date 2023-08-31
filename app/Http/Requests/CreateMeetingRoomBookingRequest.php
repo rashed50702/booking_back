@@ -22,13 +22,10 @@ class CreateMeetingRoomBookingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // 'start_time' => 'required|date|after:now',
-            // 'end_time' => 'required|date|after:start_time',
-            'start_time' => 'required|date',
-            'end_time' => 'required|date',
+            'start_time' => 'required|date|after:now',
+            'end_time' => 'required|date|after:start_time',
             'user_id' => 'required',
             'room_id' => 'required',
-
         ];
     }
 

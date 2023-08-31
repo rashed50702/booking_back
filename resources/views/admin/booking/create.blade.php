@@ -30,22 +30,13 @@
                         <div class="card-header justify-content-between">
                             <h3 class="card-title">Bookings</h3>
                             <div class="card-tools">
-                                <button class="btn btn-xs btn-primary" id="create-modal"><i class="fas fa-plus-square"></i> Create New</button>
                             </div>
                             <!-- /.card-tools -->
                         </div>
                         <!-- /.card-header -->
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-3">
-                                    <div class="form-group">
-                                        <label for="meeting_room">Meeting Room Name</label>
-                                        <select class="form-control select2" id="meeting_room" name="meeting_room" style="width: 100%;">
-                                            <option value="">Select</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-3">
+                                <div class="col-4">
                                     <div class="form-group">
                                         <label for="start_time">Start Time:</label>
                                         <div class="input-group date" id="start_time" data-target-input="nearest">
@@ -56,7 +47,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-3">
+                                <div class="col-4">
                                     <div class="form-group">
                                         <label for="end_time">End Time:</label>
                                         <div class="input-group date" id="end_time" data-target-input="nearest">
@@ -67,7 +58,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-3">
+                                <div class="col-4">
                                     <div class="form-group">
                                         <label for="availability-check">&nbsp;</label>
                                         <button class="btn btn-sm btn-primary form-control" id="check" type="submit"><i class="fa fa-search"></i> Check Availability</button>
@@ -96,7 +87,6 @@
                                                 <th>Room</th>
                                                 <th>Start Time</th>
                                                 <th>End Time</th>
-                                                <th>Availability</th>
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
@@ -130,10 +120,9 @@
 
 <script>
     $(document).ready(function() {
-
-        loadRooms();
-
         $(function() {
+
+
             $.ajaxSetup({
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -144,51 +133,32 @@
             // Initialize select2
             $('#meeting_room').select2();
             $('#user').select2();
-
-            //Start Time
-            $('#start_time').datetimepicker({
+            $('#start_time, #end_time').datetimepicker({
+                autoclose: true,
+                todayHighlight: true,
                 icons: {
-                    time: 'far fa-clock'
-                }
+                    time: 'far fa-clock',
+                },
             });
 
-            //Start Time
-            $('#end_time').datetimepicker({
-                icons: {
-                    time: 'far fa-clock'
-                }
-            });
+
         });
 
-        // Load Rooms
-        function loadRooms() {
-            $.ajax({
-                url: "{{route('room-list')}}",
-                method: 'GET',
-                success: function(data) {
-                    // Assuming the data is an array of options in the format { id, text }
-                    // Loop through the data and add options to the select2 input
-                    data.forEach(function(option) {
-                        // Create a new Option element
-                        var newOption = new Option(option.name, option.id, false, false);
 
-                        // Append the new option and trigger change event
-                        $('#meeting_room').append(newOption).trigger('change');
-                    });
-                },
-                error: function(xhr, status, error) {
-                    console.error(error);
-                }
-            });
-
-        }
-
+        // check availability
+        let usersLoaded = false;
         $('#check').click(function(e) {
             e.preventDefault();
+            let data = {
+                start_time: $('input[name="start_time"]').val(),
+                end_time: $('input[name="end_time"]').val(),
+            };
+            if (!validateDateTime(data.start_time, data.end_time)) {
+                return false;
+            }
+
             let checkBtn = $(this); // Store the button element
             checkBtn.html('<i class="fas fa-spinner fa-spin"></i> Checking...'); // Set the button text to 'Checking..'
-
-            let data = $('#form').serialize();
 
             handleAjaxRequest(
                 "{{ route('bookings-check') }}",
@@ -196,33 +166,28 @@
                 data,
                 '',
                 function(response) {
+                    // console.log(response);
                     checkBtn.html('<i class="fa fa-search"></i> Search');
+                    $('#availabilityTable tbody').empty();
                     $('#availabilityTable').show();
 
-
-                    // Format the start_time and end_time using moment.js
-                    let formattedStartTime = moment(response.start_time).format('MM/DD/YY h:mm A');
-                    let formattedEndTime = moment(response.end_time).format('MM/DD/YY h:mm A');
-
-                    // Populate the table with availability data
-                    if (response.availability === 'not available') {
-                        $('#availabilityTable tbody').html(
-                            '<tr><td colspan="5">Not Available</td></tr>'
-                        );
-                    } else {
-                        $('#availabilityTable tbody').html(
+                    response.forEach(function(row) {
+                        $('#availabilityTable tbody').append(
                             '<tr>' +
-                            '<td>' + response.room_id + '</td>' +
-                            '<td>' + response.room + '</td>' +
-                            '<td>' + formattedStartTime + '</td>' +
-                            '<td>' + formattedEndTime + '</td>' +
-                            '<td>' + response.availability + '</td>' +
-                            '<td>' + (response.availability === 'available' ? '<button class="btn btn-sm btn-secondary book-button" type="button">Book Now</button>' : '') + '</td>' +
+                            '<td>' + row.room_id + '</td>' +
+                            '<td>' + row.room_name + '</td>' +
+                            '<td>' + moment(row.start_time).format('MM/DD/YY h:mm A') + '</td>' +
+                            '<td>' + moment(row.end_time).format('MM/DD/YY h:mm A') + '</td>' +
+                            '<td>' + (row.is_booked === false ? '<button class="btn btn-sm btn-secondary book-button" type="button">Book Now</button>' : '<button class="btn btn-sm btn-secondary book-button" type="button" disabled>Booked</button>') + '</td>' +
                             '</tr>'
                         );
-                        $('#book_for').show();
+                    });
+                    $('#book_for').show();
+                    if (!usersLoaded) {
                         loadUsers();
+                        usersLoaded = true; // Set the flag to true after loading users
                     }
+
                 },
                 function() {
                     checkBtn.html('<i class="fa fa-search"></i> Search'); // Reset the button text on error
@@ -230,6 +195,44 @@
             );
 
         });
+
+
+        // Validation for start time and end time
+        function validateDateTime(start_time, end_time) {
+            if (start_time === '' || !isValidDate(start_time)) {
+                alert("Start time should be a valid date");
+                return false;
+            }
+
+            if (end_time === '' || !isValidDate(end_time)) {
+                alert("End time should be a valid date!");
+                return false;
+            }
+
+            if (new Date(start_time) < new Date() || new Date(end_time) < new Date()) {
+                alert("Selected date must not be older than today.");
+                return false;
+            }
+
+            if (new Date(start_time) > new Date(end_time)) {
+                alert("Your date is older than start date.");
+                return false;
+            }
+
+            let timediff = Math.floor(((new Date(end_time) - new Date(start_time)) / (1000 * 60)));
+
+            if (timediff <= 30) {
+                alert("Time difference should be at least 30 minutes!");
+                return false;
+            }
+            return true;
+        }
+
+        function isValidDate(dateString) {
+            let dateObject = new Date(dateString);
+            return dateObject instanceof Date && !isNaN(dateObject);
+        }
+        // End of validation for start time and end time
 
         // Load Users
         function loadUsers() {
@@ -253,9 +256,19 @@
             });
         }
 
-        // book
+        // book now
         $(document).on('click', '.book-button', function(e) {
             e.preventDefault();
+
+            if ($("#user").val() == '') {
+                alert("Please select Booking for!!");
+                return false;
+            }
+
+            if (!confirm("Are You sure want to book this!")) {
+                return false;
+            }
+
             let button = $(this);
             let room_id = button.closest('tr').find('td:nth-child(1)').text(); // Assuming room_id is in the first column
             let room = button.closest('tr').find('td:nth-child(2)').text(); // Assuming room_id is in the first column
@@ -270,6 +283,7 @@
                 start_time: start_time,
                 end_time: end_time,
             };
+
             handleAjaxRequest(
                 "{{ route('bookings.store') }}",
                 'POST',

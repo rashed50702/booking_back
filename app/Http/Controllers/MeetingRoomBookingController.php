@@ -8,17 +8,21 @@ use Illuminate\Http\Request;
 use Yajra\DataTables\DataTables;
 use App\Models\MeetingRoomBooking;
 use Illuminate\Support\Facades\DB;
+use App\Services\MeetingRoomAvailabilityService;
 use App\Http\Requests\CreateMeetingRoomBookingRequest;
 
 class MeetingRoomBookingController extends Controller
 {
+    protected $availabilityService;
+
     /**
      * Create a new controller instance.
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(MeetingRoomAvailabilityService $availabilityService)
     {
+        $this->availabilityService = $availabilityService;
         $this->middleware(['auth', 'admin']);
     }
     
@@ -38,14 +42,15 @@ class MeetingRoomBookingController extends Controller
                     return date('d-m-Y h:i a', strtotime($booking->end_time));
                 })
                 ->editColumn('status', function ($booking) {
-                    if($booking->status === "Approved"){
-                        return '<span class="badge bg-success">Approved</span>';
-                    }
-                    if($booking->status === "Pending"){
-                        return '<span class="badge bg-warning">Pending</span>';
-                    }
-                    if($booking->status === "Canceled") {
-                        return '<span class="badge bg-danger">Canceled</span>';
+                    switch ($booking->status) {
+                        case "Approved":
+                            return '<span class="badge bg-success">Approved</span>';
+                        case "Pending":
+                            return '<span class="badge bg-warning">Pending</span>';
+                        case "Canceled":
+                            return '<span class="badge bg-danger">Canceled</span>';
+                        default:
+                            return '';
                     }
                 })
                 ->addColumn('action', function ($row) {
@@ -71,35 +76,43 @@ class MeetingRoomBookingController extends Controller
 
     public function booking_checks(Request $request)
     {
-        $startDateTime = Carbon::parse($request->input('start_time'));
-        $endDateTime = Carbon::parse($request->input('end_time'));
-        $room_id = $request->input('meeting_room');
-        $room = Room::where('id', $room_id)->pluck('name');
+        $start_time = Carbon::parse($request->input('start_time'));
+        $end_time = Carbon::parse($request->input('end_time'));
 
-        $overlapBookings = DB::table('meeting_room_bookings')
-        ->where('room_id', $room_id)
-        ->where(function ($query) use ($startDateTime, $endDateTime) {
-            $query->whereBetween('start_time', [$startDateTime, $endDateTime])
-                ->orWhereBetween('end_time', [$startDateTime, $endDateTime])
-                ->orWhere(function ($query) use ($startDateTime, $endDateTime) {
-                    $query->where('start_time', '<', $startDateTime)
-                        ->where('end_time', '>', $endDateTime);
-                });
-        })->count();
+        // $availableRooms = Room::with(['bookings' => function ($query) use ($start_time, $end_time) {
+        //     $query->where(function ($query) use ($start_time, $end_time) {
+        //         $query->whereBetween('start_time', [$start_time, $end_time])
+        //             ->orWhereBetween('end_time', [$start_time, $end_time])
+        //             ->orWhere(function ($query) use ($start_time, $end_time) {
+        //                 $query->where('start_time', '<', $start_time)
+        //                     ->where('end_time', '>', $end_time);
+        //             });
+        //     });
+        // }])
+        // ->get();
 
-        if ($overlapBookings > 0) {
-            return response()->json(['availability' => 'not available']);
-        } else {
+        // // Modify response structure
+        // $response = $availableRooms->map(function ($room) use ($start_time, $end_time) {
+        //     $response = [
+        //         'room_id' => $room->id,
+        //         'room_name' => $room->name,
+        //         'is_booked' => $room->bookings->isNotEmpty()
+        //     ];
 
-            return response()->json([
-                'room_id' => $room_id,
-                'room' => $room,
-                'start_time' => $startDateTime,
-                'end_time' => $endDateTime,
-                'availability' => 'available'
-            ]);
-        }
+        //     if ($response['is_booked']) {
+        //         $booking = $room->bookings->first(); // Assuming one booking for simplicity
+        //         $response['start_time'] = $booking->start_time;
+        //         $response['end_time'] = $booking->end_time;
+        //     } else {
+        //         $response['start_time'] = $start_time;
+        //         $response['end_time'] = $end_time;
+        //     }
 
+        //     return $response;
+        // });
+        $response = $this->availabilityService->checkAvailability($start_time, $end_time);
+
+        return response()->json($response);
     }
 
     /**
@@ -107,7 +120,9 @@ class MeetingRoomBookingController extends Controller
      */
     public function store(CreateMeetingRoomBookingRequest $request)
     {
+        // return $request->all();
         $validatedData = $request->validated();
+        $validatedData['status'] = 'Approved';
 
         $booking = MeetingRoomBooking::create($validatedData);
         return response()->json(['message' => 'Booking created successfully', 'data' => $booking]);
@@ -125,7 +140,7 @@ class MeetingRoomBookingController extends Controller
      */
     public function edit(string $id)
     {
-        return MeetingRoomBooking::find($id);
+        return MeetingRoomBooking::findOrFail($id);
     }
 
     /**
@@ -133,6 +148,7 @@ class MeetingRoomBookingController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        //updating status
         MeetingRoomBooking::where('id', $id)->update([
             'status' => $request->status,
         ]);
