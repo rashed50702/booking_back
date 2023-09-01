@@ -29,41 +29,45 @@ class MeetingRoomBookingController extends Controller
     /**
      * Display a listing of the resource.
      */
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
             $booking = MeetingRoomBooking::with('room', 'user')->latest()->get();
+
             return DataTables::of($booking)
                 ->addIndexColumn()
-                ->editColumn('start_time', function($booking){
-                    return date('d-m-Y h:i a', strtotime($booking->start_time));
-                })
-                ->editColumn('end_time', function ($booking) {
-                    return date('d-m-Y h:i a', strtotime($booking->end_time));
-                })
-                ->editColumn('status', function ($booking) {
-                    switch ($booking->status) {
-                        case "Approved":
-                            return '<span class="badge bg-success">Approved</span>';
-                        case "Pending":
-                            return '<span class="badge bg-warning">Pending</span>';
-                        case "Canceled":
-                            return '<span class="badge bg-danger">Canceled</span>';
-                        default:
-                            return '';
-                    }
-                })
-                ->addColumn('action', function ($row) {
-                    $btn = '<a href="javascript:void(0)" data-toggle="tooltip"  data-id="' . $row->id . '" data-original-title="Edit" class="edit btn btn-xs edit-item"><i class="fas fa-edit"></i></a>';
-                    $btn = $btn . ' <a href="javascript:void(0)" data-toggle="tooltip"  data-id="' . $row->id . '" data-original-title="Delete" class="btn btn-xs text-danger delete-item"><i class="fas fa-trash"></i></a>';
-                    return $btn;
-                })
-                ->rawColumns(['status','action'])
+                ->editColumn('start_time', fn ($booking) => date('d-m-Y h:i a', strtotime($booking->start_time)))
+                ->editColumn('end_time', fn ($booking) => date('d-m-Y h:i a', strtotime($booking->end_time)))
+                ->editColumn('status', fn ($booking) => $this->formatBookingStatus($booking->status))
+                ->addColumn('action', fn ($row) => $this->generateActionButtons($row))
+                ->rawColumns(['status', 'action'])
                 ->make(true);
         }
-        return view('admin.booking.index');
 
+        return view('admin.booking.index');
     }
+
+    private function formatBookingStatus($status)
+    {
+        $statusLabels = [
+            'Approved' => 'success',
+            'Pending' => 'warning',
+            'Canceled' => 'danger',
+        ];
+
+        $badgeClass = $statusLabels[$status] ?? 'secondary';
+        return "<span class=\"badge bg-$badgeClass\">$status</span>";
+    }
+
+    private function generateActionButtons($row)
+    {
+        $editButton = sprintf('<a href="javascript:void(0)" data-toggle="tooltip" data-id="%d" data-original-title="Edit" class="edit btn btn-xs edit-item"><i class="fas fa-edit"></i></a>', $row->id);
+        $deleteButton = sprintf('<a href="javascript:void(0)" data-toggle="tooltip" data-id="%d" data-original-title="Delete" class="btn btn-xs text-danger delete-item"><i class="fas fa-trash"></i></a>', $row->id);
+
+        return $editButton . ' ' . $deleteButton;
+    }
+
 
     /**
      * Show the form for creating a new resource.
@@ -79,37 +83,6 @@ class MeetingRoomBookingController extends Controller
         $start_time = Carbon::parse($request->input('start_time'));
         $end_time = Carbon::parse($request->input('end_time'));
 
-        // $availableRooms = Room::with(['bookings' => function ($query) use ($start_time, $end_time) {
-        //     $query->where(function ($query) use ($start_time, $end_time) {
-        //         $query->whereBetween('start_time', [$start_time, $end_time])
-        //             ->orWhereBetween('end_time', [$start_time, $end_time])
-        //             ->orWhere(function ($query) use ($start_time, $end_time) {
-        //                 $query->where('start_time', '<', $start_time)
-        //                     ->where('end_time', '>', $end_time);
-        //             });
-        //     });
-        // }])
-        // ->get();
-
-        // // Modify response structure
-        // $response = $availableRooms->map(function ($room) use ($start_time, $end_time) {
-        //     $response = [
-        //         'room_id' => $room->id,
-        //         'room_name' => $room->name,
-        //         'is_booked' => $room->bookings->isNotEmpty()
-        //     ];
-
-        //     if ($response['is_booked']) {
-        //         $booking = $room->bookings->first(); // Assuming one booking for simplicity
-        //         $response['start_time'] = $booking->start_time;
-        //         $response['end_time'] = $booking->end_time;
-        //     } else {
-        //         $response['start_time'] = $start_time;
-        //         $response['end_time'] = $end_time;
-        //     }
-
-        //     return $response;
-        // });
         $response = $this->availabilityService->checkAvailability($start_time, $end_time);
 
         return response()->json($response);

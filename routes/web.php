@@ -31,13 +31,14 @@ Auth::routes();
 
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 
+
+// Room create
 Route::resource('rooms', RoomController::class);
-
-
-Route::post('bookings-check', [MeetingRoomBookingController::class, 'booking_checks'])->name('bookings-check');
-Route::resource('bookings', MeetingRoomBookingController::class);
-
-
 Route::middleware(['auth.json'])->group(function () {
     Route::get('room-list', [RoomController::class, 'room_list'])->name('room-list');
 });
+
+
+// Room Booking
+Route::post('bookings-check', [MeetingRoomBookingController::class, 'booking_checks'])->name('bookings-check');
+Route::resource('bookings', MeetingRoomBookingController::class);
